@@ -18,7 +18,7 @@ package aes128
 import aes128.AesComponents._
 import chisel3._
 
-class Aes128Combined extends Module {
+class Aes128Combined(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
     val io = IO(new Bundle {
         val encDataIn = Input(UInt(128.W))
         val encIvIn = Input(UInt(128.W))
@@ -63,7 +63,10 @@ class Aes128Combined extends Module {
         computedKeys(keyInd) := RoundKeyComb(computedKeys(keyInd - 1.U), keyInd)
     }
 
-    val keys = computedKeys
+    val keys = computedKeys // VecInit(computedKeys.reverse.toArray)
+
+    //val keyUpdate = false.B
+    //val keys = VecInit(Array(ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn)))
 
     val enc = Module(new Aes128Encrypt)
     enc.io.dataIn := io.encDataIn

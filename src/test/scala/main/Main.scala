@@ -25,7 +25,7 @@ import aes._
 
 object Main extends App {
     val EXEC_CONFIG = Array(
-        "--backend-name", "verilator",
+        "--backend-name", "treadle",
         "--generate-vcd-output", "on",
         "--target-dir", "test_build",
         "-tn", "test_build",
@@ -51,8 +51,10 @@ object Main extends App {
             (dut: LegacyModule) => new Aes128EncryptTest(dut.asInstanceOf[Aes128Combined])),
         "aes128decrypt_test" -> (() => new Aes128Combined(),
             (dut: LegacyModule) => new Aes128DecryptTest(dut.asInstanceOf[Aes128Combined])),
-        "aes128wishbone_test" -> (() => new Aes128Wishbone(),
+        "aes128wishbone_test" -> (() => new Aes128Wishbone(LIMIT_KEY_LENGTH=false),
             (dut: LegacyModule) => new Aes128WishboneTest(dut.asInstanceOf[Aes128Wishbone])),
+        "aes56wishbone_test" -> (() => new Aes56Wishbone(),
+            (dut: LegacyModule) => new Aes56WishboneTest(dut.asInstanceOf[Aes56Wishbone])),
 
         "optimizedsbox_test" -> (() => new OptimizedSboxTestHarness(),
             (dut: LegacyModule) => new OptimizedSboxTest(dut.asInstanceOf[OptimizedSboxTestHarness])),

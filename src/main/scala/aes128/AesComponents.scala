@@ -18,7 +18,23 @@ package aes128
 import chisel3._
 import chisel3.util._
 import Constants._
+import aes128.AesComponents._
 import aes128.AesSbox.OptSboxComp
+
+class MixColsModule extends Module {
+    val io = IO(new Bundle {
+        val in = Input(AESMatrixDims())
+        val out = Output(AESMatrixDims())
+    })
+
+    for (i <- 0 until 4) {
+        val x = io.in(i)(0) ^ io.in(i)(1) ^ io.in(i)(2) ^ io.in(i)(3)
+        io.out(i)(0) := io.in(i)(0) ^ x ^ _MixFunc(io.in(i)(0) ^ io.in(i)(1))
+        io.out(i)(1) := io.in(i)(1) ^ x ^ _MixFunc(io.in(i)(1) ^ io.in(i)(2))
+        io.out(i)(2) := io.in(i)(2) ^ x ^ _MixFunc(io.in(i)(2) ^ io.in(i)(3))
+        io.out(i)(3) := io.in(i)(3) ^ x ^ _MixFunc(io.in(i)(3) ^ io.in(i)(0))
+    }
+}
 
 object AesComponents {
     def AESMatrixDims(): AESMatrix = Vec(4, Vec(4, UInt(8.W)))
@@ -73,17 +89,9 @@ object AesComponents {
     def _MixFunc(x: UInt): UInt = Mux((x & 0x80.U) =/= 0.U, ((x << 1).asUInt ^ 0x1B.U) & 0xFF.U, (x << 1).asUInt)
 
     def MatrixMixCols(m: AESMatrix): AESMatrix = {
-        val out = Wire(AESMatrixDims())
-
-        for (i <- 0 until 4) {
-            val x = m(i)(0) ^ m(i)(1) ^ m(i)(2) ^ m(i)(3)
-            out(i)(0) := m(i)(0) ^ x ^ _MixFunc(m(i)(0) ^ m(i)(1))
-            out(i)(1) := m(i)(1) ^ x ^ _MixFunc(m(i)(1) ^ m(i)(2))
-            out(i)(2) := m(i)(2) ^ x ^ _MixFunc(m(i)(2) ^ m(i)(3))
-            out(i)(3) := m(i)(3) ^ x ^ _MixFunc(m(i)(3) ^ m(i)(0))
-        }
-
-        out
+        val mixColsModule = Module(new MixColsModule)
+        mixColsModule.io.in := m
+        mixColsModule.io.out
     }
 
     def MatrixUnmixCols(m: AESMatrix): AESMatrix = {

@@ -15,24 +15,26 @@
 // limitations under the License.
 package main
 
-import aes128.Aes128Wishbone
+import aes128.{Aes128Wishbone, Aes56Wishbone}
 import chisel3._
 import sha256.Sha256Wishbone
 import utils.Wishbone
 
 class AcceleratorTop extends Module {
+    val SHORT_KEY = true
+
     val io = IO(new Bundle {
         val bus = new Wishbone(N=32)
     })
 
-    val aes128 = Module(new Aes128Wishbone())
-    aes128.io.bus.stb := io.bus.stb
-    aes128.io.bus.we := io.bus.we
-    aes128.io.bus.sel := io.bus.sel
-    aes128.io.bus.addr := io.bus.addr(15, 0)
-    aes128.io.bus.data_wr := io.bus.data_wr
+    val aes = if (SHORT_KEY) { Module(new Aes56Wishbone()) } else { Module(new Aes128Wishbone()) }
+    aes.io.bus.stb := io.bus.stb
+    aes.io.bus.we := io.bus.we
+    aes.io.bus.sel := io.bus.sel
+    aes.io.bus.addr := io.bus.addr(15, 0)
+    aes.io.bus.data_wr := io.bus.data_wr
 
-    aes128.io.bus.cyc := io.bus.cyc && (io.bus.addr(19, 16) === 0x0.U)
+    aes.io.bus.cyc := io.bus.cyc && (io.bus.addr(19, 16) === 0x0.U)
 
     val sha256 = Module(new Sha256Wishbone())
     sha256.io.bus.stb := io.bus.stb
@@ -43,7 +45,7 @@ class AcceleratorTop extends Module {
 
     sha256.io.bus.cyc := io.bus.cyc && (io.bus.addr(19, 16) === 0x1.U)
 
-    io.bus.data_rd := Mux(io.bus.addr(19, 16) === 0x0.U, aes128.io.bus.data_rd, sha256.io.bus.data_rd)
-    io.bus.ack := Mux(io.bus.addr(19, 16) === 0x0.U, aes128.io.bus.ack, sha256.io.bus.ack)
-    io.bus.err := Mux(io.bus.addr(19, 16) === 0x0.U, aes128.io.bus.err, sha256.io.bus.err)
+    io.bus.data_rd := Mux(io.bus.addr(19, 16) === 0x0.U, aes.io.bus.data_rd, sha256.io.bus.data_rd)
+    io.bus.ack := Mux(io.bus.addr(19, 16) === 0x0.U, aes.io.bus.ack, sha256.io.bus.ack)
+    io.bus.err := Mux(io.bus.addr(19, 16) === 0x0.U, aes.io.bus.err, sha256.io.bus.err)
 }

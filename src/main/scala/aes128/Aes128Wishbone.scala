@@ -19,7 +19,7 @@ import chisel3._
 import chisel3.util._
 import utils.{RisingEdge, SliceAssign, Wishbone}
 
-class Aes128Wishbone extends Module {
+class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
 
     val io = IO(new Bundle {
         // Wishbone classic
@@ -38,20 +38,19 @@ class Aes128Wishbone extends Module {
 
     val cbcMode = RegInit(false.B)
     val iv = Reg(UInt(128.W))
-    when (!cbcMode) { iv := 0.U }
 
     val outValid = RegInit(false.B)
     val out = Reg(UInt(128.W))
     when (RisingEdge(accel.io.encOutputValid)) {
         out := accel.io.encDataOut
         outValid := true.B
-        when (cbcMode) { iv := accel.io.encIvOut }
+        iv := accel.io.encIvOut
     }
 
     when (RisingEdge(accel.io.decOutputValid)) {
         out := accel.io.decDataOut
         outValid := true.B
-        when (cbcMode) { iv := accel.io.decIvOut }
+        iv := accel.io.decIvOut
     }
 
     val dataReg = Reg(UInt(128.W))
@@ -75,15 +74,28 @@ class Aes128Wishbone extends Module {
     val decReady = accel.io.decReady
     val statusReg = Cat(0.U(28.W), cbcMode(0), outValid, encReady, decReady)
 
-    val key = Reg(UInt(128.W))
+    // Key length limited to 56
+    val key = if (LIMIT_KEY_LENGTH) { Reg(UInt(56.W)) } else { Reg(UInt(128.W)) }
+
     val keyUpdated = RegInit(false.B)
 
     val keyNext = Wire(UInt(128.W))
     keyNext := key
-    key := keyNext
+
+    // If length-limit enabled, trim key
+    key := (if (LIMIT_KEY_LENGTH) { keyNext(55, 0) } else { keyNext })
+
+    val keyFull = Wire(UInt(128.W))
+
+    if (LIMIT_KEY_LENGTH) { // Key length limited to 56, pad to full size by duplicating key
+        keyFull := Cat(key(15, 0), key, key)
+    } else {
+        // Use full key
+        keyFull := key
+    }
 
     keyUpdated := false.B
-    accel.io.keyIn := key
+    accel.io.keyIn := keyFull
     accel.io.keyValid := keyUpdated
 
     val startEnc = WireDefault(false.B)
@@ -126,7 +138,7 @@ class Aes128Wishbone extends Module {
             // 1.U write-only
             // 2.U write-only
             // 3.U write-only
-            is(4.U)  { data_rd := dataReg(127, 96) }
+            /*is(4.U)  { data_rd := dataReg(127, 96) }
             is(5.U)  { data_rd := dataReg(95, 64) }
             is(6.U)  { data_rd := dataReg(63, 32) }
             is(7.U)  { data_rd := dataReg(31, 0) }
@@ -134,17 +146,17 @@ class Aes128Wishbone extends Module {
             is(8.U)  { data_rd := iv(127, 96) }
             is(9.U)  { data_rd := iv(95, 64) }
             is(10.U) { data_rd := iv(63, 32) }
-            is(11.U) { data_rd := iv(31, 0) }
+            is(11.U) { data_rd := iv(31, 0) }*/
 
-            is(12.U) { data_rd := Mux(outValid(0), out(127, 96), 0.U(32.W)) }
-            is(13.U) { data_rd := Mux(outValid(0), out(95, 64), 0.U(32.W)) }
-            is(14.U) { data_rd := Mux(outValid(0), out(63, 32), 0.U(32.W)) }
-            is(15.U) { data_rd := Mux(outValid(0), out(31, 0), 0.U(32.W)) }
+            is(12.U) { data_rd := out(127, 96) }
+            is(13.U) { data_rd := out(95, 64) }
+            is(14.U) { data_rd := out(63, 32) }
+            is(15.U) { data_rd := out(31, 0) }
 
-            is(16.U) { data_rd := key(127, 96) }
-            is(17.U) { data_rd := key(95, 64) }
-            is(18.U) { data_rd := key(63, 32) }
-            is(19.U) { data_rd := key(31, 0) }
+            /*is(16.U) { data_rd := keyFull(127, 96) }
+            is(17.U) { data_rd := keyFull(95, 64) }
+            is(18.U) { data_rd := keyFull(63, 32) }
+            is(19.U) { data_rd := keyFull(31, 0) }*/
         }
 
         when(io.bus.we) {
@@ -182,6 +194,7 @@ class Aes128Wishbone extends Module {
                     dataNext := SliceAssign(dataReg, io.bus.data_wr, 31, 0)
                 }
 
+                // IV can be written using a fake decrypt
                 is(8.U) {
                     ivNext := SliceAssign(iv, io.bus.data_wr, 127, 96)
                 }
@@ -204,19 +217,19 @@ class Aes128Wishbone extends Module {
                 // 15.U read-only
 
                 is(16.U) {
-                    keyNext := SliceAssign(key, io.bus.data_wr, 127, 96)
+                    keyNext := SliceAssign(keyFull, io.bus.data_wr, 127, 96)
                 }
 
                 is(17.U) {
-                    keyNext := SliceAssign(key, io.bus.data_wr, 95, 64)
+                    keyNext := SliceAssign(keyFull, io.bus.data_wr, 95, 64)
                 }
 
                 is(18.U) {
-                    keyNext := SliceAssign(key, io.bus.data_wr, 63, 32)
+                    keyNext := SliceAssign(keyFull, io.bus.data_wr, 63, 32)
                 }
 
                 is(19.U) {
-                    keyNext := SliceAssign(key, io.bus.data_wr, 31, 0)
+                    keyNext := SliceAssign(keyFull, io.bus.data_wr, 31, 0)
                 }
             }
         }
