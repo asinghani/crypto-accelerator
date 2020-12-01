@@ -75,9 +75,9 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
 
     def setKey(key: BigInt): Unit = {
         wishboneWrite(0x40, ((key >> 96) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x44, ((key >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x48, ((key >> 32) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x4C, ((key >> 0)  & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 0)  & 0xFFFFFFFFl).toLong)
 
         wishboneWrite(0x0C, 1)
 
@@ -86,22 +86,29 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
     }
 
     def setIv(iv: BigInt = BigInt(0)): Unit = {
-        wishboneWrite(0x00, if (iv != 0) { 0x8 } else { 0x0 })
+        wishboneWrite(0x00, 0x0)
 
-        wishboneWrite(0x20, ((iv >> 96) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x24, ((iv >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x28, ((iv >> 32) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x2C, ((iv >> 0)  & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((iv >> 96) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((iv >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((iv >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((iv >> 0)  & 0xFFFFFFFFl).toLong)
+
+        wishboneWrite(0x08, 1)
+        step(1)
+        assert((wishboneRead(0x00) & 0x4) != 0x4)
+        while ((wishboneRead(0x00) & 0x4) != 0x4) step(1)
+
+        wishboneWrite(0x00, 0x8)
     }
 
     def runSingleDecryptTest(ciphertext: BigInt, plaintext: BigInt, iv: BigInt = BigInt(0)): Unit = {
+        if (iv != 0) setIv(iv)
         wishboneWrite(0x00, if (iv != 0) { 0x8 } else { 0x0 })
-        setIv(iv)
 
         wishboneWrite(0x10, ((ciphertext >> 96) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x14, ((ciphertext >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x18, ((ciphertext >> 32) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x1C, ((ciphertext >> 0)  & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((ciphertext >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((ciphertext >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((ciphertext >> 0)  & 0xFFFFFFFFl).toLong)
 
         wishboneWrite(0x08, 1)
         step(1)
@@ -115,13 +122,13 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
     }
 
     def runSingleEncryptTest(plaintext: BigInt, ciphertext: BigInt, iv: BigInt = BigInt(0)): Unit = {
+        if (iv != 0) setIv(iv)
         wishboneWrite(0x00, if (iv != 0) { 0x8 } else { 0x0 })
-        setIv(iv)
 
         wishboneWrite(0x10, ((plaintext >> 96) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x14, ((plaintext >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x18, ((plaintext >> 32) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x1C, ((plaintext >> 0)  & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((plaintext >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((plaintext >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((plaintext >> 0)  & 0xFFFFFFFFl).toLong)
 
         wishboneWrite(0x04, 1)
         step(2)
@@ -144,7 +151,22 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
     runSingleDecryptTest(BigInt("191269884928480092850775886794089116221"), BigInt("53533723263096188494879905935507858290"), iv=BigInt("114569600669659166774737151663344146729"))
     runSingleDecryptTest(BigInt("103522583274007989084648569150893738254"), BigInt("78732626654880918153396673645234369074"))
 
-    /*runSingleDecryptTest(BigInt("285620521974381805374183171356809032743"), BigInt("78732626654880918153396673645234369074"), iv=BigInt("147981112317427754652321488608020016728"))
+    setKey(BigInt("129445976579865719297921356551604413220"))
+    runSingleEncryptTest(BigInt("138766332635719238849554048983485396278"), BigInt("30614575354952859734368363414031006605"))
+
+    setKey(BigInt("114849718896073566083416993308083054187"))
+    runSingleEncryptTest(BigInt("54758945827980741386470298169332301409"), BigInt("289445855507223381064146989315641296578"))
+    runSingleEncryptTest(BigInt("54758945827980741386470298169332301409"), BigInt("63241459423936053969797744104158954336"), iv=BigInt("94605682877008349257125771496548550738"))
+    runSingleEncryptTest(BigInt("63009363580684677640861982505439019373"), BigInt("307084774739159377437930299938971018023"))
+    runSingleEncryptTest(BigInt("63009363580684677640861982505439019373"), BigInt("121285145432821926259489755756437457204"), iv=BigInt("60013523246785301651415126051136829294"))
+    runSingleEncryptTest(BigInt("65558960394507562676116818757822741623"), BigInt("263688908005839110432491559432072638113"))
+    runSingleEncryptTest(BigInt("65558960394507562676116818757822741623"), BigInt("292458752579585649052525818149840375761"), iv=BigInt("149077117949227956397498265561073205290"))
+    runSingleEncryptTest(BigInt("63036415400463229995541035617174648702"), BigInt("16295005142645389383086784455485558759"))
+    runSingleEncryptTest(BigInt("63036415400463229995541035617174648702"), BigInt("93669816153615164512395952751800033039"), iv=BigInt("146673491003412119423160181958932249174"))
+    runSingleEncryptTest(BigInt("115893530272870037403253388774378124663"), BigInt("78307793813593636465505717142472701120"))
+
+    setKey(BigInt("77480659682196824781536209242280568617"))
+    runSingleDecryptTest(BigInt("285620521974381805374183171356809032743"), BigInt("78732626654880918153396673645234369074"), iv=BigInt("147981112317427754652321488608020016728"))
     runSingleDecryptTest(BigInt("193102151738919742469920448191206198811"), BigInt("138531862892119456316820873688573960762"))
     runSingleDecryptTest(BigInt("173577793028898773428655398731547059119"), BigInt("138531862892119456316820873688573960762"), iv=BigInt("68078054275351338050152113982098793760"))
     runSingleDecryptTest(BigInt("49706086182423641475700416514958935121"), BigInt("86919746956773577147522875398327975231"))
@@ -350,19 +372,8 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
     runSingleDecryptTest(BigInt("201851808223422530896560535530939776840"), BigInt("48088059960293530227446720088654305143"), iv=BigInt("46824907959208716496977543540148042843"))
 
 
-    setKey(BigInt("129445976579865719297921356551604413220"))
-    runSingleEncryptTest(BigInt("138766332635719238849554048983485396278"), BigInt("30614575354952859734368363414031006605"))
 
     setKey(BigInt("114849718896073566083416993308083054187"))
-    runSingleEncryptTest(BigInt("54758945827980741386470298169332301409"), BigInt("289445855507223381064146989315641296578"))
-    runSingleEncryptTest(BigInt("54758945827980741386470298169332301409"), BigInt("63241459423936053969797744104158954336"), iv=BigInt("94605682877008349257125771496548550738"))
-    runSingleEncryptTest(BigInt("63009363580684677640861982505439019373"), BigInt("307084774739159377437930299938971018023"))
-    runSingleEncryptTest(BigInt("63009363580684677640861982505439019373"), BigInt("121285145432821926259489755756437457204"), iv=BigInt("60013523246785301651415126051136829294"))
-    runSingleEncryptTest(BigInt("65558960394507562676116818757822741623"), BigInt("263688908005839110432491559432072638113"))
-    runSingleEncryptTest(BigInt("65558960394507562676116818757822741623"), BigInt("292458752579585649052525818149840375761"), iv=BigInt("149077117949227956397498265561073205290"))
-    runSingleEncryptTest(BigInt("63036415400463229995541035617174648702"), BigInt("16295005142645389383086784455485558759"))
-    runSingleEncryptTest(BigInt("63036415400463229995541035617174648702"), BigInt("93669816153615164512395952751800033039"), iv=BigInt("146673491003412119423160181958932249174"))
-    runSingleEncryptTest(BigInt("115893530272870037403253388774378124663"), BigInt("78307793813593636465505717142472701120"))
     runSingleEncryptTest(BigInt("115893530272870037403253388774378124663"), BigInt("57873011419295910906973876109488840100"), iv=BigInt("137369721399049440708519569169693105014"))
     runSingleEncryptTest(BigInt("74885239361085007638178609790930468671"), BigInt("278131917818815872483937984457317959494"))
     runSingleEncryptTest(BigInt("74885239361085007638178609790930468671"), BigInt("311368125752202963993246456614958734547"), iv=BigInt("44406274741320136577355402206418977136"))
@@ -587,5 +598,5 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
     runSingleEncryptTest(BigInt("44380334624219522542253740501960632661"), BigInt("288791642284250204713661254870252284592"))
     runSingleEncryptTest(BigInt("44380334624219522542253740501960632661"), BigInt("316804242608174920769766559842210722072"), iv=BigInt("105457722456344753191157455023958534718"))
     runSingleEncryptTest(BigInt("139995748177119672660211662608055747183"), BigInt("130035906473209420777267489690463285980"))
-*/
+
 }

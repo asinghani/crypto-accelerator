@@ -22,17 +22,30 @@ class ShiftRegister(val DEPTH: Int, val WIDTH: Int = 32) extends Module {
         val input    = Input(UInt(WIDTH.W))
         val enable   = Input(Bool())
 
+        val rev   = Input(Bool())
+        val cyc   = Input(Bool())
+
         val output   = Output(Vec(DEPTH, UInt(WIDTH.W)))
     })
 
     val reg = Reg(Vec(DEPTH, UInt(WIDTH.W)))
 
     when (io.enable) {
-        for (i <- 0 until DEPTH - 1) {
-            reg(i+1) := reg(i)
-        }
+        when (io.rev) {
+            for (i <- 0 until DEPTH - 1) {
+                reg(i) := reg(i+1)
+            }
 
-        reg(0) := io.input
+            reg(DEPTH-1) := reg(0)
+
+        } .otherwise {
+            for (i <- 0 until DEPTH - 1) {
+                reg(i+1) := reg(i)
+            }
+
+            when (io.cyc) { reg(0) := reg(DEPTH-1) }
+                .otherwise { reg(0) := io.input }
+        }
     }
 
     io.output := reg

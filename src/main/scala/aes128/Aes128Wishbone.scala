@@ -41,6 +41,12 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
 
     val outValid = RegInit(false.B)
     val out = Reg(UInt(128.W))
+
+
+    val ivNext = Wire(UInt(128.W))
+    ivNext := iv
+    iv := ivNext
+
     when (RisingEdge(accel.io.encOutputValid)) {
         out := accel.io.encDataOut
         outValid := true.B
@@ -57,10 +63,6 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
     val dataNext = Wire(UInt(128.W))
     dataNext := dataReg
     dataReg := dataNext
-
-    val ivNext = Wire(UInt(128.W))
-    ivNext := iv
-    iv := ivNext
 
     accel.io.encIvIn := Mux(cbcMode, iv, 0.U)
     accel.io.decIvIn := Mux(cbcMode, iv, 0.U)
@@ -179,37 +181,10 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
                 }
 
                 is(4.U) {
-                    dataNext := SliceAssign(dataReg, io.bus.data_wr, 127, 96)
-                }
-
-                is(5.U) {
-                    dataNext := SliceAssign(dataReg, io.bus.data_wr, 95, 64)
-                }
-
-                is(6.U) {
-                    dataNext := SliceAssign(dataReg, io.bus.data_wr, 63, 32)
-                }
-
-                is(7.U) {
-                    dataNext := SliceAssign(dataReg, io.bus.data_wr, 31, 0)
+                    dataNext := Cat(dataReg(95, 0), io.bus.data_wr)
                 }
 
                 // IV can be written using a fake decrypt
-                is(8.U) {
-                    ivNext := SliceAssign(iv, io.bus.data_wr, 127, 96)
-                }
-
-                is(9.U) {
-                    ivNext := SliceAssign(iv, io.bus.data_wr, 95, 64)
-                }
-
-                is(10.U) {
-                    ivNext := SliceAssign(iv, io.bus.data_wr, 63, 32)
-                }
-
-                is(11.U) {
-                    ivNext := SliceAssign(iv, io.bus.data_wr, 31, 0)
-                }
 
                 // 12.U read-only
                 // 13.U read-only
@@ -217,19 +192,7 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
                 // 15.U read-only
 
                 is(16.U) {
-                    keyNext := SliceAssign(keyFull, io.bus.data_wr, 127, 96)
-                }
-
-                is(17.U) {
-                    keyNext := SliceAssign(keyFull, io.bus.data_wr, 95, 64)
-                }
-
-                is(18.U) {
-                    keyNext := SliceAssign(keyFull, io.bus.data_wr, 63, 32)
-                }
-
-                is(19.U) {
-                    keyNext := SliceAssign(keyFull, io.bus.data_wr, 31, 0)
+                    keyNext := Cat(keyFull(95, 0), io.bus.data_wr)
                 }
             }
         }

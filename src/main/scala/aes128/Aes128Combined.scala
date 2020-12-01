@@ -17,6 +17,7 @@ package aes128
 
 import aes128.AesComponents._
 import chisel3._
+import sha256.ShiftRegister
 
 class Aes128Combined(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
     val io = IO(new Bundle {
@@ -48,10 +49,17 @@ class Aes128Combined(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
     val keyUpdate = RegInit(false.B)
     val keyInd = RegInit(0.U(6.W))
 
+    val shreg = Module(new ShiftRegister(DEPTH=11, WIDTH=128))
+
+    shreg.io.input := 0.U
+    shreg.io.enable := false.B
+
     when (io.keyValid) {
         keyUpdate := true.B
         keyInd := 1.U
-        computedKeys(0) := ToMatrix(io.keyIn)
+
+        shreg.io.enable := true.B
+        shreg.io.input := io.keyIn
     }
 
     when (keyUpdate) {
@@ -60,10 +68,11 @@ class Aes128Combined(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
             keyUpdate := false.B
         }
 
-        computedKeys(keyInd) := RoundKeyComb(computedKeys(keyInd - 1.U), keyInd)
+        shreg.io.enable := true.B
+        shreg.io.input := FromMatrix(RoundKeyComb(ToMatrix(shreg.io.output(0)), keyInd))
     }
 
-    val keys = computedKeys // VecInit(computedKeys.reverse.toArray)
+    val keys = VecInit(shreg.io.output.toArray.map(ToMatrix).reverse)
 
     //val keyUpdate = false.B
     //val keys = VecInit(Array(ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn)))
@@ -79,6 +88,8 @@ class Aes128Combined(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
     io.encIvOut := enc.io.ivOut
     io.encOutputValid := enc.io.outputValid
 
+
+
     val dec = Module(new Aes128Decrypt)
     dec.io.dataIn := io.decDataIn
     dec.io.ivIn := io.decIvIn
@@ -90,4 +101,7 @@ class Aes128Combined(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
     io.decIvOut := dec.io.ivOut
     io.decOutputValid := dec.io.outputValid
 
+    shreg.io.cyc := enc.io.shiftCyc || dec.io.shiftCyc
+    shreg.io.rev := enc.io.shiftRev || dec.io.shiftRev
+    when (enc.io.shift || dec.io.shift) { shreg.io.enable := true.B }
 }

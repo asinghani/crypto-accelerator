@@ -26,6 +26,10 @@ class Aes128Decrypt extends Module {
 
         val keys = Input(Vec(11, AESMatrixDims()))
 
+        val shiftCyc = Output(Bool())
+        val shiftRev = Output(Bool())
+        val shift = Output(Bool())
+
         val ready = Output(Bool())
 
         val dataOut = Output(UInt(128.W))
@@ -49,6 +53,10 @@ class Aes128Decrypt extends Module {
     io.ready := ((state === 0.U) || (state === 22.U))
     io.outputValid := (state === 0.U)
 
+    io.shiftRev := true.B && !io.ready
+    io.shiftCyc := !io.ready || io.dataValid
+    io.shift := false.B
+
     val ctSaved = Reg(UInt(128.W))
     val ivSaved = Reg(UInt(128.W))
 
@@ -59,10 +67,12 @@ class Aes128Decrypt extends Module {
 
     // Reflected from encrypt side
     val roundPart1 = AesSbox.OptimizedInvSbox(MatrixUnshiftRows(matrix))
-    val roundPart2 = MatrixUnmixCols(MatrixXor(matrix, io.keys((state >> 1).asUInt)))
-    val roundPart2_10 = MatrixXor(matrix, io.keys((state >> 1).asUInt))
 
-    val finalOut = ToMatrix(ivSaved ^ FromMatrix(MatrixXor(matrix, io.keys(0))))
+    val xorOut = MatrixXor(matrix, io.keys(10))
+    val roundPart2 = MatrixUnmixCols(MatrixXor(matrix, io.keys(10)))
+    val roundPart2_10 = MatrixXor(matrix, io.keys(10))
+
+    val finalOut = ToMatrix(io.ivIn ^ FromMatrix(MatrixXor(matrix, io.keys(10))))
 
     when (io.ready && io.dataValid) {
         matrix := ToMatrix(io.dataIn)
@@ -74,34 +84,14 @@ class Aes128Decrypt extends Module {
     when (!io.ready) {
         when (state === 1.U) {
             matrix := finalOut
+            io.shift := true.B
         } .elsewhen (state(0) === 0.U) {
             matrix := roundPart1
         } .otherwise {
             matrix := Mux(state === 21.U, roundPart2_10, roundPart2)
+            io.shift := true.B
         }
 
         state := state - 1.U
     }
-
-    //     def decrypt(self, ciphertext):
-    //        self.cipher_state = text2matrix(ciphertext)
-    //
-    //        for i in range(10, 0, -1):
-    //            ## CYCLE 1
-    //            self.matrix_xor_elementwise(self.cipher_state, self.round_keys[i])
-    //            if i != 10: self.unmix_columns(self.cipher_state)
-    //
-    //            ## CYCLE 2
-    //            self.matrix_unshift_rows(self.cipher_state)
-    //            self.matrix_invsbox_lookup(self.cipher_state)
-    //
-    //        self.matrix_xor_elementwise(self.cipher_state, self.round_keys[0])
-    //
-    //        out = matrix2text(self.cipher_state)
-    //
-    //        if self.iv is not None:
-    //            out = out ^ self.iv
-    //            self.iv = ciphertext
-    //
-    //        return out
 }

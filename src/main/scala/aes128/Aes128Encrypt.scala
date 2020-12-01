@@ -17,6 +17,7 @@ package aes128
 
 import aes128.AesComponents._
 import chisel3._
+import utils.RisingEdge
 
 class Aes128Encrypt extends Module {
     val io = IO(new Bundle {
@@ -25,6 +26,10 @@ class Aes128Encrypt extends Module {
         val dataValid = Input(Bool())
 
         val keys = Input(Vec(11, AESMatrixDims()))
+
+        val shiftCyc = Output(Bool())
+        val shiftRev = Output(Bool())
+        val shift = Output(Bool())
 
         val ready = Output(Bool())
 
@@ -48,6 +53,10 @@ class Aes128Encrypt extends Module {
     io.ready := (state === 0.U) || (state === 1.U) || (state === 22.U)
     io.outputValid := (state === 22.U)
 
+    io.shiftRev := false.B && !io.ready
+    io.shiftCyc := !io.ready || io.dataValid
+    io.shift := false.B
+
     val matrix = Reg(AESMatrixDims())
 
     io.dataOut := FromMatrix(matrix)
@@ -61,13 +70,21 @@ class Aes128Encrypt extends Module {
     val initOut = ToMatrix(io.dataIn ^ io.ivIn ^ FromMatrix(io.keys(0)))
 
     val roundPart1 = MatrixShiftRows(AesSbox.OptimizedSbox(matrix))
-    val roundPart2 = MatrixXor(MatrixMixCols(matrix), io.keys((state >> 1).asUInt))
-    val roundPart2_10 = MatrixXor(matrix, io.keys((state >> 1).asUInt))
+    //val roundPart2 = MatrixXor(MatrixMixCols(matrix), io.keys((state >> 1).asUInt))
+    //val roundPart2_10 = MatrixXor(matrix, io.keys((state >> 1).asUInt))
+
+    val roundPart2 = MatrixXor(MatrixMixCols(matrix), io.keys(0))
+    val roundPart2_10 = MatrixXor(matrix, io.keys(0))
 
     when (io.ready && io.dataValid) {
         matrix := initOut
         //keyMatrix := initKeyMatrix
         state := 2.U
+        io.shift := true.B
+    }
+
+    when (RisingEdge(io.outputValid)) {
+        //io.shift := true.B
     }
 
     when (!io.ready) {
@@ -76,6 +93,7 @@ class Aes128Encrypt extends Module {
             //keyMatrix := RoundKeyComb(keyMatrix, (state >> 1).asUInt)
         } .otherwise {
             matrix := Mux(state === 21.U, roundPart2_10, roundPart2)
+            io.shift := true.B
         }
 
         state := state + 1.U
