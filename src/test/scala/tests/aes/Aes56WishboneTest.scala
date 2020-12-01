@@ -26,6 +26,17 @@ class Aes56WishboneTest(dut: Aes56Wishbone) extends PeekPokeTester(dut) {
     poke(dut.io.bus.we, false)
     poke(dut.io.bus.sel, 0xF)
 
+    def assertError(func: => Unit): Unit = {
+        var error = false
+        try {
+            func
+        } catch {
+            case e: AssertionError => error = true
+        }
+
+        assert(error)
+    }
+
     // 0x00 = status    // RW
     // 0x04 = encStart  // WO
     // 0x08 = decStart  // WO
@@ -74,18 +85,10 @@ class Aes56WishboneTest(dut: Aes56Wishbone) extends PeekPokeTester(dut) {
     }
 
     def setKey(key: BigInt): Unit = {
-        assert(((key >> 56) & 0xFFFFFFFFFFFFFFl) == (key & 0xFFFFFFFFFFFFFFl))
-        assert(((key >> 112) & 0xFFFFl) == (key & 0xFFFFl))
-
-        //wishboneWrite(0x40, ((key >> 96) & 0xFFFFFFFFl).toLong)
-        //wishboneWrite(0x44, ((key >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x48, ((key >> 32) & 0x00FFFFFFl).toLong)
-        wishboneWrite(0x4C, ((key >> 0)  & 0xFFFFFFFFl).toLong)
-
-        assert(wishboneRead(0x40) == ((key >> 96) & 0xFFFFFFFFl).toLong)
-        assert(wishboneRead(0x44) == ((key >> 64) & 0xFFFFFFFFl).toLong)
-        assert(wishboneRead(0x48) == ((key >> 32) & 0xFFFFFFFFl).toLong)
-        assert(wishboneRead(0x4C) == ((key >> 0)  & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 96) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 0)  & 0xFFFFFFFFl).toLong)
 
         wishboneWrite(0x0C, 1)
 
@@ -93,18 +96,30 @@ class Aes56WishboneTest(dut: Aes56Wishbone) extends PeekPokeTester(dut) {
         while ((wishboneRead(0x00) & 0x3) != 0x3) step(1)
     }
 
+    def setIv(iv: BigInt = BigInt(0)): Unit = {
+        wishboneWrite(0x00, 0x0)
+
+        wishboneWrite(0x10, ((iv >> 96) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((iv >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((iv >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((iv >> 0)  & 0xFFFFFFFFl).toLong)
+
+        wishboneWrite(0x08, 1)
+        step(1)
+        assert((wishboneRead(0x00) & 0x4) != 0x4)
+        while ((wishboneRead(0x00) & 0x4) != 0x4) step(1)
+
+        wishboneWrite(0x00, 0x8)
+    }
+
     def runSingleDecryptTest(ciphertext: BigInt, plaintext: BigInt, iv: BigInt = BigInt(0)): Unit = {
+        if (iv != 0) setIv(iv)
         wishboneWrite(0x00, if (iv != 0) { 0x8 } else { 0x0 })
 
         wishboneWrite(0x10, ((ciphertext >> 96) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x14, ((ciphertext >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x18, ((ciphertext >> 32) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x1C, ((ciphertext >> 0)  & 0xFFFFFFFFl).toLong)
-
-        wishboneWrite(0x20, ((iv >> 96) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x24, ((iv >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x28, ((iv >> 32) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x2C, ((iv >> 0)  & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((ciphertext >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((ciphertext >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((ciphertext >> 0)  & 0xFFFFFFFFl).toLong)
 
         wishboneWrite(0x08, 1)
         step(1)
@@ -112,23 +127,19 @@ class Aes56WishboneTest(dut: Aes56Wishbone) extends PeekPokeTester(dut) {
         while ((wishboneRead(0x00) & 0x4) != 0x4) step(1)
 
         val out = (BigInt(wishboneRead(0x30)) << 96) | (BigInt(wishboneRead(0x34)) << 64) |
-                  (BigInt(wishboneRead(0x38)) << 32) | (BigInt(wishboneRead(0x3C)) << 0)
+            (BigInt(wishboneRead(0x38)) << 32) | (BigInt(wishboneRead(0x3C)) << 0)
 
         assert(out == plaintext)
     }
 
     def runSingleEncryptTest(plaintext: BigInt, ciphertext: BigInt, iv: BigInt = BigInt(0)): Unit = {
+        if (iv != 0) setIv(iv)
         wishboneWrite(0x00, if (iv != 0) { 0x8 } else { 0x0 })
 
         wishboneWrite(0x10, ((plaintext >> 96) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x14, ((plaintext >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x18, ((plaintext >> 32) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x1C, ((plaintext >> 0)  & 0xFFFFFFFFl).toLong)
-
-        wishboneWrite(0x20, ((iv >> 96) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x24, ((iv >> 64) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x28, ((iv >> 32) & 0xFFFFFFFFl).toLong)
-        wishboneWrite(0x2C, ((iv >> 0)  & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((plaintext >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((plaintext >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x10, ((plaintext >> 0)  & 0xFFFFFFFFl).toLong)
 
         wishboneWrite(0x04, 1)
         step(2)
@@ -573,5 +584,12 @@ class Aes56WishboneTest(dut: Aes56Wishbone) extends PeekPokeTester(dut) {
     runSingleDecryptTest(BigInt("322578084719486562488860312791837970111"), BigInt("125135111017852248165310092282363862365"), iv=BigInt("71052108903597576107229618326741866328"))
     runSingleDecryptTest(BigInt("18233013574573391658485828245677292227"), BigInt("64048978653202050692410942999239808801"))
     runSingleDecryptTest(BigInt("113629946262803001165706057087734995000"), BigInt("64048978653202050692410942999239808801"), iv=BigInt("101485315467745940433742504463054501421"))
+
+    setKey(BigInt("77480659682196824781536209242280568617"))
+
+    assertError { runSingleDecryptTest(BigInt("285620521974381805374183171356809032743"), BigInt("78732626654880918153396673645234369074"), iv=BigInt("147981112317427754652321488608020016728")) }
+    assertError { runSingleDecryptTest(BigInt("193102151738919742469920448191206198811"), BigInt("138531862892119456316820873688573960762")) }
+    assertError { runSingleDecryptTest(BigInt("173577793028898773428655398731547059119"), BigInt("138531862892119456316820873688573960762"), iv=BigInt("68078054275351338050152113982098793760")) }
+    assertError { runSingleDecryptTest(BigInt("49706086182423641475700416514958935121"), BigInt("86919746956773577147522875398327975231")) }
 
 }
