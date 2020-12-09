@@ -22,6 +22,8 @@ import scala.util.Random
 
 class Sha256WishboneTest(dut: Sha256Wishbone) extends PeekPokeTester(dut) {
 
+    println(peek(dut.io.bus.data_rd).toString(16))
+
     poke(dut.io.bus.stb, false)
     poke(dut.io.bus.cyc, false)
     poke(dut.io.bus.we, false)

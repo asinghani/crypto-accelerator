@@ -17,4 +17,4 @@ package aes128
 
 import chisel3._
 
-class Aes56Wishbone extends Aes128Wishbone(LIMIT_KEY_LENGTH = true)
+class Aes56Wishbone(override val IDENT: String = "AES56  Core") extends Aes128Wishbone(LIMIT_KEY_LENGTH = true, IDENT=IDENT)

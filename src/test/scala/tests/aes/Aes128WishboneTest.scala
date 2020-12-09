@@ -141,6 +141,8 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
         assert(out == ciphertext)
     }
 
+    //assert(wishboneRead(0x50) == 0x31534541l)
+
     setKey(BigInt("129445976579865719297921356551604413220"))
     runSingleDecryptTest(BigInt("30614575354952859734368363414031006605"), BigInt("138766332635719238849554048983485396278"))
 

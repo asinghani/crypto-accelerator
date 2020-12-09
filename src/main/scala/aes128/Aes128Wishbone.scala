@@ -19,7 +19,7 @@ import chisel3._
 import chisel3.util._
 import utils.{RisingEdge, SliceAssign, Wishbone}
 
-class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
+class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "AES128 Core") extends Module {
 
     val io = IO(new Bundle {
         // Wishbone classic
@@ -129,6 +129,11 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
     // 0x48 = key[8]    // RW
     // 0x4C = key[C]    // RW
 
+    var identifier_str = IDENT
+    while (identifier_str.length % 4 != 3) identifier_str += " "
+    identifier_str += '\0'
+    val identifier_words = identifier_str.chars().toArray.grouped(4).toArray.map(x => (x(3) << 24) | (x(2) << 16) | (x(1) << 8) | (x(0) << 0))
+
     ack := false.B
     when(io.bus.cyc && io.bus.stb && !io.bus.ack) {
         ack := true.B
@@ -159,6 +164,12 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
             is(17.U) { data_rd := keyFull(95, 64) }
             is(18.U) { data_rd := keyFull(63, 32) }
             is(19.U) { data_rd := keyFull(31, 0) }*/
+        }
+
+        for((w, i) <- identifier_words.zipWithIndex) {
+            when((io.bus.addr >> 2).asUInt === (20 + i).U) {
+                data_rd := w.U(32.W)
+            }
         }
 
         when(io.bus.we) {

@@ -26,7 +26,7 @@ import aes._
 object Main extends App {
     val EXEC_CONFIG = Array(
         "--backend-name", "verilator",
-        "--generate-vcd-output", "on",
+        "--generate-vcd-output", "off",
         "--target-dir", "test_build",
         "-tn", "test_build",
         "--no-dce"

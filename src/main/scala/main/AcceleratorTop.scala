@@ -20,14 +20,14 @@ import chisel3._
 import sha256.Sha256Wishbone
 import utils.Wishbone
 
-class AcceleratorTop extends Module {
+class AcceleratorTop(val SHA_IDENT: String = "SHA256 Core", val AES_IDENT: String = "AES128 Core") extends Module {
     val SHORT_KEY = true
 
     val io = IO(new Bundle {
         val bus = new Wishbone(N=32)
     })
 
-    val aes = if (SHORT_KEY) { Module(new Aes56Wishbone()) } else { Module(new Aes128Wishbone()) }
+    val aes = if (SHORT_KEY) { Module(new Aes56Wishbone(IDENT=AES_IDENT)) } else { Module(new Aes128Wishbone(IDENT=AES_IDENT)) }
     aes.io.bus.stb := io.bus.stb
     aes.io.bus.we := io.bus.we
     aes.io.bus.sel := io.bus.sel
@@ -36,7 +36,7 @@ class AcceleratorTop extends Module {
 
     aes.io.bus.cyc := io.bus.cyc && (io.bus.addr(19, 16) === 0x0.U)
 
-    val sha256 = Module(new Sha256Wishbone())
+    val sha256 = Module(new Sha256Wishbone(IDENT=SHA_IDENT))
     sha256.io.bus.stb := io.bus.stb
     sha256.io.bus.we := io.bus.we
     sha256.io.bus.sel := io.bus.sel

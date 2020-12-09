@@ -19,7 +19,7 @@ import chisel3._
 import chisel3.util._
 import utils.Wishbone
 
-class Sha256Wishbone extends Module {
+class Sha256Wishbone(val IDENT: String = "SHA256 Core") extends Module {
 
     val io = IO(new Bundle {
         // Wishbone classic
@@ -40,7 +40,12 @@ class Sha256Wishbone extends Module {
     // 0x28 = hash 6
     // 0x2C = hash 7
 
-    val data_rd = RegInit(0.U(32.W))
+    var identifier_str = IDENT
+    while (identifier_str.length % 4 != 3) identifier_str += " "
+    identifier_str += '\0'
+    val identifier_words = identifier_str.chars().toArray.grouped(4).toArray.map(x => (x(3) << 24) | (x(2) << 16) | (x(1) << 8) | (x(0) << 0))
+
+    val data_rd = Reg(UInt(32.W))
     io.bus.data_rd := data_rd
 
     val ack = RegInit(false.B)
@@ -70,6 +75,12 @@ class Sha256Wishbone extends Module {
             is(9.U)  { data_rd := Mux(accel.io.outputValid(0), accel.io.outputData(5), 0.U(32.W)) }
             is(10.U) { data_rd := Mux(accel.io.outputValid(0), accel.io.outputData(6), 0.U(32.W)) }
             is(11.U) { data_rd := Mux(accel.io.outputValid(0), accel.io.outputData(7), 0.U(32.W)) }
+        }
+
+        for((w, i) <- identifier_words.zipWithIndex) {
+            when((io.bus.addr >> 2).asUInt === (20 + i).U) {
+                data_rd := w.U(32.W)
+            }
         }
 
         ack := true.B
