@@ -13,13 +13,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package aes128
+package aes
 
 import chisel3._
 import chisel3.util._
 import Constants._
-import aes128.AesComponents._
-import aes128.AesSbox.OptSboxComp
+import aes.AesComponents._
+import aes.AesSbox.OptSboxComp
 
 class MixColsModule extends Module {
     val io = IO(new Bundle {
@@ -108,41 +108,45 @@ object AesComponents {
 
         MatrixMixCols(out)
     }
-    def RoundKeyComb(lastKey: AESMatrix, roundNum: UInt): AESMatrix = {
+
+    def RoundKeyComb(nextLastKey: AESMatrix, lastKey: AESMatrix, roundNum: UInt, aes256: Bool): AESMatrix = {
         val key = Wire(AESMatrixDims())
 
-        val r0b0 = lastKey(0)(0) ^ OptSboxComp(lastKey(3)(1)) ^ RoundConstants()(roundNum)
-        val r0b1 = lastKey(0)(1) ^ OptSboxComp(lastKey(3)(2))
-        val r0b2 = lastKey(0)(2) ^ OptSboxComp(lastKey(3)(3))
-        val r0b3 = lastKey(0)(3) ^ OptSboxComp(lastKey(3)(0))
+        val aes256Alt = !roundNum(0) && aes256
+
+        val s0 = OptSboxComp(lastKey(3)(0))
+        val s1 = OptSboxComp(lastKey(3)(1))
+        val s2 = OptSboxComp(lastKey(3)(2))
+        val s3 = OptSboxComp(lastKey(3)(3))
+
+        val lastKeyBox = Mux(aes256, nextLastKey, lastKey)
+
+        val roundConst = Mux(aes256, RoundConstants()((roundNum >> 1).asUInt + 1.U), RoundConstants()(roundNum))
+
+        val r0b0 = lastKeyBox(0)(0) ^ Mux(aes256Alt, s0, s1) ^ Mux(aes256Alt, 0.U, roundConst)
+        val r0b1 = lastKeyBox(0)(1) ^ Mux(aes256Alt, s1, s2)
+        val r0b2 = lastKeyBox(0)(2) ^ Mux(aes256Alt, s2, s3)
+        val r0b3 = lastKeyBox(0)(3) ^ Mux(aes256Alt, s3, s0)
         key(0) := VecInit(r0b0, r0b1, r0b2, r0b3)
 
-        val r1b0 = lastKey(1)(0) ^ r0b0
-        val r1b1 = lastKey(1)(1) ^ r0b1
-        val r1b2 = lastKey(1)(2) ^ r0b2
-        val r1b3 = lastKey(1)(3) ^ r0b3
+        val r1b0 = lastKeyBox(1)(0) ^ r0b0
+        val r1b1 = lastKeyBox(1)(1) ^ r0b1
+        val r1b2 = lastKeyBox(1)(2) ^ r0b2
+        val r1b3 = lastKeyBox(1)(3) ^ r0b3
         key(1) := VecInit(r1b0, r1b1, r1b2, r1b3)
 
-        val r2b0 = lastKey(2)(0) ^ r1b0
-        val r2b1 = lastKey(2)(1) ^ r1b1
-        val r2b2 = lastKey(2)(2) ^ r1b2
-        val r2b3 = lastKey(2)(3) ^ r1b3
+        val r2b0 = lastKeyBox(2)(0) ^ r1b0
+        val r2b1 = lastKeyBox(2)(1) ^ r1b1
+        val r2b2 = lastKeyBox(2)(2) ^ r1b2
+        val r2b3 = lastKeyBox(2)(3) ^ r1b3
         key(2) := VecInit(r2b0, r2b1, r2b2, r2b3)
 
-        val r3b0 = lastKey(3)(0) ^ r2b0
-        val r3b1 = lastKey(3)(1) ^ r2b1
-        val r3b2 = lastKey(3)(2) ^ r2b2
-        val r3b3 = lastKey(3)(3) ^ r2b3
+        val r3b0 = lastKeyBox(3)(0) ^ r2b0
+        val r3b1 = lastKeyBox(3)(1) ^ r2b1
+        val r3b2 = lastKeyBox(3)(2) ^ r2b2
+        val r3b3 = lastKeyBox(3)(3) ^ r2b3
         key(3) := VecInit(r3b0, r3b1, r3b2, r3b3)
 
         key
-    }
-
-    def RoundKey1Cyc(lastKey: AESMatrix, roundNum: UInt): AESMatrix = {
-        RegNext(RoundKeyComb(lastKey, roundNum)) // TODO properly pipeline
-    }
-
-    def RoundKey2Cyc(lastKey: AESMatrix, roundNum: UInt): AESMatrix = {
-        RegNext(RoundKey1Cyc(lastKey, roundNum)) // TODO properly pipeline
     }
 }

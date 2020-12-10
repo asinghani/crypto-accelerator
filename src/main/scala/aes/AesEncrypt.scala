@@ -13,19 +13,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package aes128
+package aes
 
-import aes128.AesComponents._
+import aes.AesComponents._
 import chisel3._
 import utils.RisingEdge
 
-class Aes128Encrypt extends Module {
+class AesEncrypt extends Module {
     val io = IO(new Bundle {
         val dataIn = Input(UInt(128.W))
         val ivIn = Input(UInt(128.W))
         val dataValid = Input(Bool())
 
-        val keys = Input(Vec(11, AESMatrixDims()))
+        val keys = Input(Vec(15, AESMatrixDims()))
+        val aes256 = Input(Bool())
 
         val shiftCyc = Output(Bool())
         val shiftRev = Output(Bool())
@@ -47,11 +48,14 @@ class Aes128Encrypt extends Module {
     // ...
     // 20 = round 10 part 1
     // 21 = round 10 part 2
-    // 22 = output valid
+    // ...
+    // 28 = round 14 part 1
+    // 29 = round 14 part 2
+    // 30 = output valid
     val state = RegInit(1.U(6.W))
 
-    io.ready := (state === 0.U) || (state === 1.U) || (state === 22.U)
-    io.outputValid := (state === 22.U)
+    io.ready := (state === 0.U) || (state === 1.U) || (state === 30.U)
+    io.outputValid := (state === 30.U)
 
     io.shiftRev := false.B && !io.ready
     io.shiftCyc := !io.ready || io.dataValid
@@ -74,7 +78,7 @@ class Aes128Encrypt extends Module {
     //val roundPart2_10 = MatrixXor(matrix, io.keys((state >> 1).asUInt))
 
     val roundPart2 = MatrixXor(MatrixMixCols(matrix), io.keys(0))
-    val roundPart2_10 = MatrixXor(matrix, io.keys(0))
+    val roundPart2_last = MatrixXor(matrix, io.keys(0))
 
     when (io.ready && io.dataValid) {
         matrix := initOut
@@ -88,15 +92,19 @@ class Aes128Encrypt extends Module {
     }
 
     when (!io.ready) {
+        val last = Mux(io.aes256, state === 29.U, state === 21.U)
+
         when (state(0) === 0.U) { // Part 1
             matrix := roundPart1
             //keyMatrix := RoundKeyComb(keyMatrix, (state >> 1).asUInt)
         } .otherwise {
-            matrix := Mux(state === 21.U, roundPart2_10, roundPart2)
+            matrix := Mux(last, roundPart2_last, roundPart2)
             io.shift := true.B
         }
 
         state := state + 1.U
+
+        when (last) { state := 30.U }
     }
 
 }

@@ -13,16 +13,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package tests.aes
+package tests.aes_test
 
-import aes128.{Aes128Combined, Aes128Encrypt}
+import aes.{AesCombined, AesEncrypt}
 import chisel3.iotesters.PeekPokeTester
 import sha256.Sha256Accel
 
 import scala.util.Random
 import scala.util.control.Breaks.{break, breakable}
 
-class Aes128EncryptTest(dut: Aes128Combined) extends PeekPokeTester(dut) {
+class Aes128EncryptTest(dut: AesCombined) extends PeekPokeTester(dut) {
 
     def setKey(key: BigInt): Unit = {
         while(peek(dut.io.encReady) == 0) step(1)
@@ -56,7 +56,9 @@ class Aes128EncryptTest(dut: Aes128Combined) extends PeekPokeTester(dut) {
         expect(dut.io.encIvOut, ciphertext)
     }
 
+    poke(dut.io.aes256, false)
     poke(dut.io.keyValid, false)
+    poke(dut.io.keyShift, false)
     poke(dut.io.encDataValid, false)
     poke(dut.io.decDataValid, false)
 
@@ -273,4 +275,5 @@ class Aes128EncryptTest(dut: Aes128Combined) extends PeekPokeTester(dut) {
     runTest(BigInt("130831368252686802948992976561958058580"), BigInt("211753058416579184094207760022265766269"), iv=BigInt("138408263804049034615517341636609921143"))
     runTest(BigInt("52397664623499573511462614000227086910"), BigInt("247268737662119261364321410779108028625"))
     runTest(BigInt("52397664623499573511462614000227086910"), BigInt("31648102336010827272570357957627325398"), iv=BigInt("149321988335800431316839071525097121624"))
+
 }

@@ -51,6 +51,7 @@ class MessageScheduleArray extends Module {
     val shreg = Module(new ShiftRegister(DEPTH = 16, WIDTH = 32))
     shreg.io.rev := false.B
     shreg.io.cyc := false.B
+    shreg.io.tap := false.B
 
     shreg.io.enable := io.shiftIn
     shreg.io.input := outWire // output[0] == w[i-1]

@@ -13,9 +13,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package tests.aes
+package tests.aes_test
 
-import aes128.{Aes128Wishbone, Aes56Wishbone}
+import aes.{AesWishbone, Aes56Wishbone}
 import chisel3.iotesters.PeekPokeTester
 
 class Aes56WishboneTest(dut: Aes56Wishbone) extends PeekPokeTester(dut) {

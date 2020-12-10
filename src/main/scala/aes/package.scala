@@ -15,6 +15,6 @@
 // limitations under the License.
 import chisel3._
 
-package object aes128 {
+package object aes {
     type AESMatrix = Vec[Vec[UInt]]
 }

@@ -13,12 +13,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package tests.aes
+package tests.aes_test
 
-import aes128.{Aes128Combined, Aes128Decrypt, Aes128Encrypt}
+import aes.{AesCombined, AesDecrypt, AesEncrypt}
 import chisel3.iotesters.PeekPokeTester
 
-class Aes128DecryptTest(dut: Aes128Combined) extends PeekPokeTester(dut) {
+class Aes128DecryptTest(dut: AesCombined) extends PeekPokeTester(dut) {
 
     def setKey(key: BigInt): Unit = {
         while(peek(dut.io.decReady) == 0) step(1)
@@ -52,11 +52,15 @@ class Aes128DecryptTest(dut: Aes128Combined) extends PeekPokeTester(dut) {
         expect(dut.io.decIvOut, ciphertext)
     }
 
+    poke(dut.io.aes256, false)
     poke(dut.io.keyValid, false)
+    poke(dut.io.keyShift, false)
     poke(dut.io.encDataValid, false)
     poke(dut.io.decDataValid, false)
 
     setKey(BigInt("129445976579865719297921356551604413220"))
+    runTest(BigInt("30614575354952859734368363414031006605"), BigInt("138766332635719238849554048983485396278"))
+    runTest(BigInt("30614575354952859734368363414031006605"), BigInt("138766332635719238849554048983485396278"))
     runTest(BigInt("30614575354952859734368363414031006605"), BigInt("138766332635719238849554048983485396278"))
 
     setKey(BigInt("77480659682196824781536209242280568617"))

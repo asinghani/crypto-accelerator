@@ -15,8 +15,8 @@
 // limitations under the License.
 package tests.sha
 
-import aes128.AesSbox
-import aes128.Constants.{InvSbox, Sbox}
+import aes.AesSbox
+import aes.Constants.{InvSbox, Sbox}
 import chisel3._
 import chisel3.iotesters.PeekPokeTester
 import sha256.Sha256Accel

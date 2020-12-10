@@ -13,12 +13,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package tests.aes
+package tests.aes_test
 
-import aes128.Aes128Wishbone
+import aes.AesWishbone
 import chisel3.iotesters.PeekPokeTester
 
-class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
+class Aes128WishboneTest(dut: AesWishbone) extends PeekPokeTester(dut) {
     assert(!dut.LIMIT_KEY_LENGTH)
 
     poke(dut.io.bus.stb, false)
@@ -45,6 +45,9 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
     // 0x44 = key[4]    // RW
     // 0x48 = key[8]    // RW
     // 0x4C = key[C]    // RW
+
+    var aes256: Boolean = false
+    var aes256Mask = if (aes256) { 0x10 } else { 0x0 }
 
     def wishboneWrite(addr: Long, data: Long) : Unit = {
         poke(dut.io.bus.addr, addr)
@@ -73,6 +76,18 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
         return data_out
     }
 
+    def setTopKey(key: BigInt): Unit = {
+        wishboneWrite(0x40, ((key >> 96) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 64) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 32) & 0xFFFFFFFFl).toLong)
+        wishboneWrite(0x40, ((key >> 0)  & 0xFFFFFFFFl).toLong)
+
+        wishboneWrite(0x0C, 2)
+
+        step(1)
+        while ((wishboneRead(0x00) & 0x3) != 0x3) step(1)
+    }
+
     def setKey(key: BigInt): Unit = {
         wishboneWrite(0x40, ((key >> 96) & 0xFFFFFFFFl).toLong)
         wishboneWrite(0x40, ((key >> 64) & 0xFFFFFFFFl).toLong)
@@ -86,7 +101,7 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
     }
 
     def setIv(iv: BigInt = BigInt(0)): Unit = {
-        wishboneWrite(0x00, 0x0)
+        wishboneWrite(0x00, aes256Mask | 0x0)
 
         wishboneWrite(0x10, ((iv >> 96) & 0xFFFFFFFFl).toLong)
         wishboneWrite(0x10, ((iv >> 64) & 0xFFFFFFFFl).toLong)
@@ -98,12 +113,12 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
         assert((wishboneRead(0x00) & 0x4) != 0x4)
         while ((wishboneRead(0x00) & 0x4) != 0x4) step(1)
 
-        wishboneWrite(0x00, 0x8)
+        wishboneWrite(0x00, aes256Mask | 0x8)
     }
 
     def runSingleDecryptTest(ciphertext: BigInt, plaintext: BigInt, iv: BigInt = BigInt(0)): Unit = {
         if (iv != 0) setIv(iv)
-        wishboneWrite(0x00, if (iv != 0) { 0x8 } else { 0x0 })
+        wishboneWrite(0x00, aes256Mask | (if (iv != 0) { 0x8 } else { 0x0 }))
 
         wishboneWrite(0x10, ((ciphertext >> 96) & 0xFFFFFFFFl).toLong)
         wishboneWrite(0x10, ((ciphertext >> 64) & 0xFFFFFFFFl).toLong)
@@ -123,7 +138,7 @@ class Aes128WishboneTest(dut: Aes128Wishbone) extends PeekPokeTester(dut) {
 
     def runSingleEncryptTest(plaintext: BigInt, ciphertext: BigInt, iv: BigInt = BigInt(0)): Unit = {
         if (iv != 0) setIv(iv)
-        wishboneWrite(0x00, if (iv != 0) { 0x8 } else { 0x0 })
+        wishboneWrite(0x00, aes256Mask | (if (iv != 0) { 0x8 } else { 0x0 }))
 
         wishboneWrite(0x10, ((plaintext >> 96) & 0xFFFFFFFFl).toLong)
         wishboneWrite(0x10, ((plaintext >> 64) & 0xFFFFFFFFl).toLong)

@@ -17,13 +17,17 @@ package sha256
 
 import chisel3._
 
-class ShiftRegister(val DEPTH: Int, val WIDTH: Int = 32) extends Module {
+class ShiftRegister(val DEPTH: Int, val WIDTH: Int = 32, var TAP0: Int = -1, var TAP1: Int = -1) extends Module {
+    if (TAP0 == -1) TAP0 = DEPTH - 1
+    if (TAP1 == -1) TAP1 = DEPTH - 1
+
     val io = IO(new Bundle {
         val input    = Input(UInt(WIDTH.W))
         val enable   = Input(Bool())
 
         val rev   = Input(Bool())
         val cyc   = Input(Bool())
+        val tap   = Input(Bool())
 
         val output   = Output(Vec(DEPTH, UInt(WIDTH.W)))
     })
@@ -36,14 +40,13 @@ class ShiftRegister(val DEPTH: Int, val WIDTH: Int = 32) extends Module {
                 reg(i) := reg(i+1)
             }
 
-            reg(DEPTH-1) := reg(0)
-
+            reg(DEPTH-1) := reg(Mux(io.tap, TAP1.U, TAP0.U))
         } .otherwise {
             for (i <- 0 until DEPTH - 1) {
                 reg(i+1) := reg(i)
             }
 
-            when (io.cyc) { reg(0) := reg(DEPTH-1) }
+            when (io.cyc) { reg(Mux(io.tap, TAP1.U, TAP0.U)) := reg(DEPTH-1) }
                 .otherwise { reg(0) := io.input }
         }
     }

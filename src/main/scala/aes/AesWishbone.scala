@@ -13,13 +13,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package aes128
+package aes
 
 import chisel3._
 import chisel3.util._
 import utils.{RisingEdge, SliceAssign, Wishbone}
 
-class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "AES128 Core") extends Module {
+class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "AES128/256 Core") extends Module {
 
     val io = IO(new Bundle {
         // Wishbone classic
@@ -34,9 +34,10 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "
     io.bus.ack := ack
     io.bus.err := false.B
 
-    val accel = Module(new Aes128Combined)
+    val accel = Module(new AesCombined)
 
     val cbcMode = RegInit(false.B)
+    val aes256Mode = RegInit(false.B)
     val iv = Reg(UInt(128.W))
 
     val outValid = RegInit(false.B)
@@ -67,6 +68,8 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "
     accel.io.encIvIn := Mux(cbcMode, iv, 0.U)
     accel.io.decIvIn := Mux(cbcMode, iv, 0.U)
 
+    accel.io.aes256 := aes256Mode
+
     accel.io.encDataIn := dataReg
     accel.io.decDataIn := dataReg
 
@@ -74,12 +77,13 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "
     // {28'b0, mode, outValid, encReady, decReady}
     val encReady = accel.io.encReady
     val decReady = accel.io.decReady
-    val statusReg = Cat(0.U(28.W), cbcMode(0), outValid, encReady, decReady)
+    val statusReg = Cat(0.U(27.W), aes256Mode, cbcMode, outValid, encReady, decReady)
 
     // Key length limited to 56
     val key = if (LIMIT_KEY_LENGTH) { Reg(UInt(56.W)) } else { Reg(UInt(128.W)) }
 
     val keyUpdated = RegInit(false.B)
+    val keyShift = RegInit(false.B)
 
     val keyNext = Wire(UInt(128.W))
     keyNext := key
@@ -97,8 +101,10 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "
     }
 
     keyUpdated := false.B
+    keyShift := false.B
     accel.io.keyIn := keyFull
     accel.io.keyValid := keyUpdated
+    accel.io.keyShift := keyShift
 
     val startEnc = WireDefault(false.B)
     val startDec = WireDefault(false.B)
@@ -142,28 +148,11 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "
         data_rd := 0.U(32.W)
         switch(io.bus.addr >> 2) {
             is(0.U)  { data_rd := statusReg }
-            // 1.U write-only
-            // 2.U write-only
-            // 3.U write-only
-            /*is(4.U)  { data_rd := dataReg(127, 96) }
-            is(5.U)  { data_rd := dataReg(95, 64) }
-            is(6.U)  { data_rd := dataReg(63, 32) }
-            is(7.U)  { data_rd := dataReg(31, 0) }
-
-            is(8.U)  { data_rd := iv(127, 96) }
-            is(9.U)  { data_rd := iv(95, 64) }
-            is(10.U) { data_rd := iv(63, 32) }
-            is(11.U) { data_rd := iv(31, 0) }*/
 
             is(12.U) { data_rd := out(127, 96) }
             is(13.U) { data_rd := out(95, 64) }
             is(14.U) { data_rd := out(63, 32) }
             is(15.U) { data_rd := out(31, 0) }
-
-            /*is(16.U) { data_rd := keyFull(127, 96) }
-            is(17.U) { data_rd := keyFull(95, 64) }
-            is(18.U) { data_rd := keyFull(63, 32) }
-            is(19.U) { data_rd := keyFull(31, 0) }*/
         }
 
         for((w, i) <- identifier_words.zipWithIndex) {
@@ -177,6 +166,7 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "
             switch(io.bus.addr >> 2) {
                 is(0.U) {
                     when (io.bus.sel(0)) { cbcMode := io.bus.data_wr(3) } // Mode
+                    when (io.bus.sel(0)) { aes256Mode := io.bus.data_wr(4) }
                 }
 
                 is(1.U) {
@@ -189,6 +179,7 @@ class Aes128Wishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "
 
                 is(3.U) {
                     when (io.bus.sel(0) && io.bus.data_wr(0) && decReady && encReady) { keyUpdated := true.B }
+                    when (io.bus.sel(0) && io.bus.data_wr(1) && decReady && encReady) { keyShift := true.B }
                 }
 
                 is(4.U) {

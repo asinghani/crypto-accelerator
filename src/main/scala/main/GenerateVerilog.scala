@@ -17,7 +17,7 @@ package main
 
 import java.io.{BufferedWriter, File, FileWriter}
 
-import aes128.AESTestTop
+import aes.AESTestTop
 import chisel3.stage.ChiselStage
 import sha256.Sha256Wishbone
 import utils._

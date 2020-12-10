@@ -20,8 +20,8 @@ import chisel3._
 import chisel3.internal.LegacyModule
 import sha256._
 import sha._
-import aes128._
 import aes._
+import aes_test._
 
 object Main extends App {
     val EXEC_CONFIG = Array(
@@ -47,12 +47,20 @@ object Main extends App {
         "sha256wishbone_test" -> (() => new Sha256Wishbone(),
             (dut: LegacyModule) => new Sha256WishboneTest(dut.asInstanceOf[Sha256Wishbone])),
 
-        "aes128encrypt_test" -> (() => new Aes128Combined(),
-            (dut: LegacyModule) => new Aes128EncryptTest(dut.asInstanceOf[Aes128Combined])),
-        "aes128decrypt_test" -> (() => new Aes128Combined(),
-            (dut: LegacyModule) => new Aes128DecryptTest(dut.asInstanceOf[Aes128Combined])),
-        "aes128wishbone_test" -> (() => new Aes128Wishbone(LIMIT_KEY_LENGTH=false),
-            (dut: LegacyModule) => new Aes128WishboneTest(dut.asInstanceOf[Aes128Wishbone])),
+        "aes128encrypt_test" -> (() => new AesCombined(),
+            (dut: LegacyModule) => new Aes128EncryptTest(dut.asInstanceOf[AesCombined])),
+        "aes128decrypt_test" -> (() => new AesCombined(),
+            (dut: LegacyModule) => new Aes128DecryptTest(dut.asInstanceOf[AesCombined])),
+
+        "aes256decrypt_test" -> (() => new AesCombined(),
+            (dut: LegacyModule) => new Aes256DecryptTest(dut.asInstanceOf[AesCombined])),
+        "aes256encrypt_test" -> (() => new AesCombined(),
+            (dut: LegacyModule) => new Aes256EncryptTest(dut.asInstanceOf[AesCombined])),
+
+        "aeswishbone_test" -> (() => new AesWishbone(LIMIT_KEY_LENGTH=false),
+            (dut: LegacyModule) => new AesWishboneTest(dut.asInstanceOf[AesWishbone])),
+        "aes128wishbone_test" -> (() => new AesWishbone(LIMIT_KEY_LENGTH=false),
+            (dut: LegacyModule) => new Aes128WishboneTest(dut.asInstanceOf[AesWishbone])),
         "aes56wishbone_test" -> (() => new Aes56Wishbone(),
             (dut: LegacyModule) => new Aes56WishboneTest(dut.asInstanceOf[Aes56Wishbone])),
 

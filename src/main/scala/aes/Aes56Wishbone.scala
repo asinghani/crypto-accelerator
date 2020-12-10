@@ -13,8 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package aes128
+package aes
 
 import chisel3._
 
-class Aes56Wishbone(override val IDENT: String = "AES56  Core") extends Aes128Wishbone(LIMIT_KEY_LENGTH = true, IDENT=IDENT)
+class Aes56Wishbone(override val IDENT: String = "AES56  Core") extends AesWishbone(LIMIT_KEY_LENGTH = true, IDENT=IDENT)

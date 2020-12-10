@@ -15,19 +15,19 @@
 // limitations under the License.
 package main
 
-import aes128.{Aes128Wishbone, Aes56Wishbone}
+import aes.{AesWishbone, Aes56Wishbone}
 import chisel3._
 import sha256.Sha256Wishbone
 import utils.Wishbone
 
-class AcceleratorTop(val SHA_IDENT: String = "SHA256 Core", val AES_IDENT: String = "AES128 Core") extends Module {
-    val SHORT_KEY = true
+class AcceleratorTop(val SHA_IDENT: String = "SHA256 Core", val AES_IDENT: String = "AES128/256 Core") extends Module {
+    val SHORT_KEY = false
 
     val io = IO(new Bundle {
         val bus = new Wishbone(N=32)
     })
 
-    val aes = if (SHORT_KEY) { Module(new Aes56Wishbone(IDENT=AES_IDENT)) } else { Module(new Aes128Wishbone(IDENT=AES_IDENT)) }
+    val aes = if (SHORT_KEY) { Module(new Aes56Wishbone(IDENT=AES_IDENT)) } else { Module(new AesWishbone(IDENT=AES_IDENT)) }
     aes.io.bus.stb := io.bus.stb
     aes.io.bus.we := io.bus.we
     aes.io.bus.sel := io.bus.sel

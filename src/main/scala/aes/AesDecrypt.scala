@@ -13,18 +13,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package aes128
+package aes
 
-import aes128.AesComponents._
+import aes.AesComponents._
 import chisel3._
 
-class Aes128Decrypt extends Module {
+class AesDecrypt extends Module {
     val io = IO(new Bundle {
         val dataIn = Input(UInt(128.W))
         val ivIn = Input(UInt(128.W))
         val dataValid = Input(Bool())
 
-        val keys = Input(Vec(11, AESMatrixDims()))
+        val keys = Input(Vec(15, AESMatrixDims()))
+        val aes256 = Input(Bool())
 
         val shiftCyc = Output(Bool())
         val shiftRev = Output(Bool())
@@ -37,9 +38,8 @@ class Aes128Decrypt extends Module {
         val outputValid = Output(Bool())
     })
 
-
-    // 0 = output valid
-    // 1 = final xor / IV
+    // 0 = out valid
+    // 1 = final XOR/IV
     // 2 = round 1 part 1
     // 3 = round 1 part 2
     // 4 = round 2 part 1
@@ -47,14 +47,17 @@ class Aes128Decrypt extends Module {
     // ...
     // 20 = round 10 part 1
     // 21 = round 10 part 2
-    // 22 = inactive
-    val state = RegInit(22.U(6.W))
+    // ...
+    // 28 = round 14 part 1
+    // 29 = round 14 part 2
+    // 30 = inactive
+    val state = RegInit(30.U(6.W))
 
-    io.ready := ((state === 0.U) || (state === 22.U))
+    io.ready := ((state === 0.U) || (state === 30.U))
     io.outputValid := (state === 0.U)
 
-    io.shiftRev := true.B && !io.ready
-    io.shiftCyc := !io.ready || io.dataValid
+    io.shiftRev := io.shift
+    io.shiftCyc := io.shift
     io.shift := false.B
 
     val ctSaved = Reg(UInt(128.W))
@@ -65,20 +68,22 @@ class Aes128Decrypt extends Module {
     io.dataOut := FromMatrix(matrix)
     io.ivOut := ctSaved
 
-    // Reflected from encrypt side
+    // Mirrored from encrypt side
     val roundPart1 = AesSbox.OptimizedInvSbox(MatrixUnshiftRows(matrix))
 
-    val xorOut = MatrixXor(matrix, io.keys(10))
-    val roundPart2 = MatrixUnmixCols(MatrixXor(matrix, io.keys(10)))
-    val roundPart2_10 = MatrixXor(matrix, io.keys(10))
+    val keyEndAddr = Mux(io.aes256, 14.U, 10.U)
 
-    val finalOut = ToMatrix(io.ivIn ^ FromMatrix(MatrixXor(matrix, io.keys(10))))
+    val xorOut = MatrixXor(matrix, io.keys(keyEndAddr))
+    val roundPart2 = MatrixUnmixCols(MatrixXor(matrix, io.keys(keyEndAddr)))
+    val roundPart2_10 = MatrixXor(matrix, io.keys(keyEndAddr))
+
+    val finalOut = ToMatrix(io.ivIn ^ FromMatrix(MatrixXor(matrix, io.keys(keyEndAddr))))
 
     when (io.ready && io.dataValid) {
         matrix := ToMatrix(io.dataIn)
         ctSaved := io.dataIn
         ivSaved := io.ivIn
-        state := 21.U
+        state := Mux(io.aes256, 29.U, 21.U)
     }
 
     when (!io.ready) {
@@ -88,7 +93,7 @@ class Aes128Decrypt extends Module {
         } .elsewhen (state(0) === 0.U) {
             matrix := roundPart1
         } .otherwise {
-            matrix := Mux(state === 21.U, roundPart2_10, roundPart2)
+            matrix := Mux(state === Mux(io.aes256, 29.U, 21.U), roundPart2_10, roundPart2)
             io.shift := true.B
         }
 
