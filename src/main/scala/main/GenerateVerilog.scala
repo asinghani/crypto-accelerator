@@ -32,8 +32,11 @@ object GenerateVerilog extends App {
         "--target-dir", "build"
     )
 
+    val aes_ident = if (args.length > 1) { args(1) } else { "AES128/256 Core" }
+    val sha_ident = if (args.length > 2) { args(2) } else { "SHA256 Core" }
+
     val verilog = new ChiselStage().emitVerilog(
-        new AcceleratorTop(),
+        new AcceleratorTop(AES_IDENT = aes_ident, SHA_IDENT = sha_ident),
         args = BUILD_ARGS
     )
 

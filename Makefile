@@ -27,13 +27,9 @@ build/top.v: $(SCALA_SOURCES)
 test:
 	sbt --supershell=never "test:runMain main.Main $(TARGET)"
 
-.PHONY: synth-aes56
-synth-aes56: build/top.v
-	yosys -p 'read_verilog build/top.v; synth -top Aes56Wishbone'
-
-.PHONY: synth-aes128
-synth-aes128: build/top.v
-	yosys -p 'read_verilog build/top.v; synth -top Aes128Wishbone'
+.PHONY: synth-aes
+synth-aes: build/top.v
+	yosys -p 'read_verilog build/top.v; synth -top AesWishbone'
 
 .PHONY: synth-sha
 synth-sha: build/top.v

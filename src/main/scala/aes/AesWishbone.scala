@@ -43,11 +43,6 @@ class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "AES
     val outValid = RegInit(false.B)
     val out = Reg(UInt(128.W))
 
-
-    val ivNext = Wire(UInt(128.W))
-    ivNext := iv
-    iv := ivNext
-
     when (RisingEdge(accel.io.encOutputValid)) {
         out := accel.io.encDataOut
         outValid := true.B
@@ -186,12 +181,9 @@ class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "AES
                     dataNext := Cat(dataReg(95, 0), io.bus.data_wr)
                 }
 
-                // IV can be written using a fake decrypt
-
-                // 12.U read-only
-                // 13.U read-only
-                // 14.U read-only
-                // 15.U read-only
+                is(8.U) {
+                    iv := Cat(iv(95, 0), io.bus.data_wr)
+                }
 
                 is(16.U) {
                     keyNext := Cat(keyFull(95, 0), io.bus.data_wr)
