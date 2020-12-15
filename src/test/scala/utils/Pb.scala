@@ -54,11 +54,7 @@ object Pb {
             val remaining_time = ((running_times.sum / running_times.length) * (back.length - i)).toInt
             val time_string = if (i > 1) { s"[${timeFormat(elapsed_time)}<${timeFormat(remaining_time)}]          " } else { "" }
 
-            val progress_bar = if (use_utf8) {
-                progressBarUTF8(progress_float, pb_length)
-            } else {
-                progressBarASCII(progress_float, pb_length)
-            }
+            val progress_bar = progressBarASCII(progress_float, pb_length)
 
             print(s" ${percentage_string}%|${progress_bar}| ${i}/${back.length} ${time_string}")
 
@@ -85,28 +81,6 @@ object Pb {
         private def progressBarASCII(progress: Float, pb_length: Int): String = {
             val num_boxes = Math.min((progress * pb_length.toFloat).round, pb_length)
             val progress_bar = "█" * num_boxes + " " * (pb_length - num_boxes)
-
-            return progress_bar
-        }
-
-        private def progressBarUTF8(progress: Float, pb_length: Int): String = {
-            val full_boxes = Math.min(((progress-0.001) * pb_length.toFloat).floor.toInt, pb_length)
-            val last_frac = (progress - (full_boxes.toFloat / pb_length.toFloat)) * pb_length.toFloat
-
-            val last_box = if (last_frac < 0.125) {
-                " "
-            } else if (last_frac < 0.375) {
-                "▎"
-            } else if (last_frac < 0.625) {
-                "▌"
-            } else if (last_frac < 0.875) {
-                "▊"
-            } else {
-                "█"
-            }
-
-            val progress_bar = "█" * full_boxes + last_box +
-                " " * (pb_length - full_boxes - 1)
 
             return progress_bar
         }
