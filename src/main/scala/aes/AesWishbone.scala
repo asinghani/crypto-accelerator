@@ -19,7 +19,7 @@ import chisel3._
 import chisel3.util._
 import utils.{RisingEdge, SliceAssign, Wishbone}
 
-class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = true, val IDENT: String = "AES128/256 Core") extends Module {
+class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = false, val IDENT: String = "AES128/256 Core") extends Module {
 
     val io = IO(new Bundle {
         // Wishbone classic
