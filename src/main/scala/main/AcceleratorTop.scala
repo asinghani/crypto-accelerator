@@ -32,7 +32,7 @@ class AcceleratorTop(val SHA_IDENT: String = "SHA256 Core", val AES_IDENT: Strin
         val bus = new Wishbone(N=32)
     })
 
-    val aes = if (SHORT_KEY) { Module(new Aes56Wishbone(IDENT=AES_IDENT)) } else { Module(new AesWishbone(IDENT=AES_IDENT)) }
+    val aes = Module(new AesWishbone(IDENT=(if (SHORT_KEY) { "(56-bit) " } else { "" }) + AES_IDENT, LIMIT_KEY_LENGTH=SHORT_KEY))
     aes.io.bus.stb := io.bus.stb
     aes.io.bus.we := io.bus.we
     aes.io.bus.sel := io.bus.sel

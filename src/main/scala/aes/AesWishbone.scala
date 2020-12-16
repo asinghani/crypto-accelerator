@@ -187,6 +187,7 @@ class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = false, val IDENT: String = "AE
 
                 is(16.U) {
                     keyNext := Cat(keyFull(95, 0), io.bus.data_wr)
+                    if (LIMIT_KEY_LENGTH) { keyShift := true.B }
                 }
             }
         }
