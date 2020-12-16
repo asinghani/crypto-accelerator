@@ -23,6 +23,11 @@ import utils.Wishbone
 class AcceleratorTop(val SHA_IDENT: String = "SHA256 Core", val AES_IDENT: String = "AES128/256 Core") extends Module {
     val SHORT_KEY = false
 
+    println("Generating AcceleratorTop. Config:")
+    println(s"    SHORT_KEY = ${SHORT_KEY}")
+    println(s"    AES_IDENT = ${AES_IDENT}")
+    println(s"    SHA_IDENT = ${SHA_IDENT}")
+
     val io = IO(new Bundle {
         val bus = new Wishbone(N=32)
     })

@@ -16,12 +16,14 @@
 TARGET=all
 
 SCALA_SOURCES=$(shell find . -name "*.scala")
+AES_IDENT="AES128/256 Core"
+SHA_IDENT="SHA256 Core"
 
 .PHONY: build
 build: build/top.v
 build/top.v: $(SCALA_SOURCES)
 	mkdir -p build
-	sbt --supershell=never "runMain main.GenerateVerilog"
+	sbt --supershell=never 'runMain main.GenerateVerilog $(AES_IDENT) $(SHA_IDENT)'
 
 .PHONY: test
 test:
