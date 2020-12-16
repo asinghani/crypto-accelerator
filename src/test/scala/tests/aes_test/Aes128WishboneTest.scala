@@ -1,6 +1,4 @@
-// Copyright 2020 Anish Singhani
-//
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2020 Anish Singhani
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 package tests.aes_test
 
 import aes.AesWishbone
@@ -617,3 +616,4 @@ class Aes128WishboneTest(dut: AesWishbone) extends PeekPokeTester(dut) {
     runSingleEncryptTest(BigInt("139995748177119672660211662608055747183"), BigInt("130035906473209420777267489690463285980"))
 
 }
+

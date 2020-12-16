@@ -1,6 +1,4 @@
-// Copyright 2020 Anish Singhani
-//
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2020 Anish Singhani
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 package aes
 
 import chisel3._
@@ -325,3 +324,4 @@ object Constants {
                                    |W6 = P14 + P23
                                    |W7 = P9 + P16""".stripMargin
 }
+

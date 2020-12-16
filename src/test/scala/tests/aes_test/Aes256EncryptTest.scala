@@ -1,6 +1,4 @@
-// Copyright 2020 Anish Singhani
-//
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2020 Anish Singhani
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 package tests.aes_test
 
 import aes.AesCombined
@@ -302,3 +301,4 @@ class Aes256EncryptTest(dut: AesCombined) extends PeekPokeTester(dut) {
     runTest(BigInt("154628330491722760310202863494497185898"), BigInt("144555853978131143835068208710737819888"), iv=BigInt("108184047510374556240764681370096258168"))
 
 }
+

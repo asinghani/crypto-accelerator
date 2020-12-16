@@ -1,6 +1,4 @@
-// Copyright 2020 Anish Singhani
-//
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2020 Anish Singhani
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 package main
 
 import aes.{AesWishbone, Aes56Wishbone}
@@ -54,3 +53,4 @@ class AcceleratorTop(val SHA_IDENT: String = "SHA256 Core", val AES_IDENT: Strin
     io.bus.ack := Mux(io.bus.addr(19, 16) === 0x0.U, aes.io.bus.ack, sha256.io.bus.ack)
     io.bus.err := Mux(io.bus.addr(19, 16) === 0x0.U, aes.io.bus.err, sha256.io.bus.err)
 }
+
