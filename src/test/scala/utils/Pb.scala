@@ -79,7 +79,7 @@ object Pb {
 
         private def progressBarASCII(progress: Float, pb_length: Int): String = {
             val num_boxes = Math.min((progress * pb_length.toFloat).round, pb_length)
-            val progress_bar = "█" * num_boxes + " " * (pb_length - num_boxes)
+            val progress_bar = "-" * num_boxes + " " * (pb_length - num_boxes)
 
             return progress_bar
         }
