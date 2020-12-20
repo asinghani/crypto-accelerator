@@ -65,37 +65,24 @@ class AesEncrypt extends Module {
     io.dataOut := FromMatrix(matrix)
     io.ivOut := io.dataOut
 
-    //val initKeyMatrix = Reg(AESMatrixDims())
-    //when (io.ready && io.keyValid) { initKeyMatrix := ToMatrix(io.keyIn) }
-    //val keyMatrix = Reg(AESMatrixDims())
-
     // For initial IV + XOR round key 0
     val initOut = ToMatrix(io.dataIn ^ io.ivIn ^ FromMatrix(io.keys(0)))
 
     val roundPart1 = MatrixShiftRows(AesSbox.OptimizedSbox(matrix))
-    //val roundPart2 = MatrixXor(MatrixMixCols(matrix), io.keys((state >> 1).asUInt))
-    //val roundPart2_10 = MatrixXor(matrix, io.keys((state >> 1).asUInt))
-
     val roundPart2 = MatrixXor(MatrixMixCols(matrix), io.keys(0))
     val roundPart2_last = MatrixXor(matrix, io.keys(0))
 
     when (io.ready && io.dataValid) {
         matrix := initOut
-        //keyMatrix := initKeyMatrix
         state := 2.U
         io.shift := true.B
-    }
-
-    when (RisingEdge(io.outputValid)) {
-        //io.shift := true.B
     }
 
     when (!io.ready) {
         val last = Mux(io.aes256, state === 29.U, state === 21.U)
 
-        when (state(0) === 0.U) { // Part 1
+        when (state(0) === 0.U) { // First half of round
             matrix := roundPart1
-            //keyMatrix := RoundKeyComb(keyMatrix, (state >> 1).asUInt)
         } .otherwise {
             matrix := Mux(last, roundPart2_last, roundPart2)
             io.shift := true.B

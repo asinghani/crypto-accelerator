@@ -20,11 +20,13 @@ import utils.{RisingEdge, SliceAssign, Wishbone}
 
 class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = false, val IDENT: String = "AES128/256 Core") extends Module {
 
+    // Implemented only for specific experiments and should NOT be used
+    assert(!LIMIT_KEY_LENGTH);
+
     val io = IO(new Bundle {
         // Wishbone classic
         val bus = new Wishbone(N=32)
     })
-
 
     val data_rd = RegInit(0.U(32.W))
     io.bus.data_rd := data_rd
@@ -68,7 +70,7 @@ class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = false, val IDENT: String = "AE
     accel.io.decDataIn := dataReg
 
     // mode = 0 -> ECB, mode = 1 -> CBC
-    // {28'b0, mode, outValid, encReady, decReady}
+    // {27'b0, aes256Mode, mode, outValid, encReady, decReady}
     val encReady = accel.io.encReady
     val decReady = accel.io.decReady
     val statusReg = Cat(0.U(27.W), aes256Mode, cbcMode, outValid, encReady, decReady)
@@ -107,27 +109,6 @@ class AesWishbone(val LIMIT_KEY_LENGTH: Boolean = false, val IDENT: String = "AE
     accel.io.decDataValid := startDec
 
     when (startEnc || startDec) { outValid := false.B }
-
-    // 0x00 = status    // RW
-    // 0x04 = encStart  // WO
-    // 0x08 = decStart  // WO
-    // 0x0C = updateKey // WO
-    // 0x10 = data[0]   // RW
-    // 0x14 = data[4]   // RW
-    // 0x18 = data[8]   // RW
-    // 0x1C = data[C]   // RW
-    // 0x20 = iv[0]     // RW
-    // 0x24 = iv[4]     // RW
-    // 0x28 = iv[8]     // RW
-    // 0x2C = iv[C]     // RW
-    // 0x30 = out[0]    // RO
-    // 0x34 = out[4]    // RO
-    // 0x38 = out[8]    // RO
-    // 0x3C = out[C]    // RO
-    // 0x40 = key[0]    // RW
-    // 0x44 = key[4]    // RW
-    // 0x48 = key[8]    // RW
-    // 0x4C = key[C]    // RW
 
     var identifier_str = IDENT
     while (identifier_str.length % 4 != 3) identifier_str += " "

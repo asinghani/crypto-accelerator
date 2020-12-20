@@ -25,26 +25,6 @@ class Aes128WishboneTest(dut: AesWishbone) extends PeekPokeTester(dut) {
     poke(dut.io.bus.we, false)
     poke(dut.io.bus.sel, 0xF)
 
-    // 0x00 = status    // RW
-    // 0x04 = encStart  // WO
-    // 0x08 = decStart  // WO
-    // 0x10 = data[0]   // RW
-    // 0x14 = data[4]   // RW
-    // 0x18 = data[8]   // RW
-    // 0x1C = data[C]   // RW
-    // 0x20 = iv[0]     // RW
-    // 0x24 = iv[4]     // RW
-    // 0x28 = iv[8]     // RW
-    // 0x2C = iv[C]     // RW
-    // 0x30 = out[0]    // RO
-    // 0x34 = out[4]    // RO
-    // 0x38 = out[8]    // RO
-    // 0x3C = out[C]    // RO
-    // 0x40 = key[0]    // RW
-    // 0x44 = key[4]    // RW
-    // 0x48 = key[8]    // RW
-    // 0x4C = key[C]    // RW
-
     var aes256: Boolean = false
     var aes256Mask = if (aes256) { 0x10 } else { 0x0 }
 

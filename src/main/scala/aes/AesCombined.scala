@@ -81,9 +81,6 @@ class AesCombined(val LIMIT_KEY_LENGTH: Boolean = true) extends Module {
 
     val keys = VecInit(shreg.io.output.toArray.map(ToMatrix).reverse)
 
-    //val keyUpdate = false.B
-    //val keys = VecInit(Array(ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn), ToMatrix(io.keyIn)))
-
     val enc = Module(new AesEncrypt)
     enc.io.dataIn := io.encDataIn
     enc.io.ivIn := io.encIvIn

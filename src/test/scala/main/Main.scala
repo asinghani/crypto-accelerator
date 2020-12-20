@@ -60,8 +60,6 @@ object Main extends App {
             (dut: LegacyModule) => new AesWishboneTest(dut.asInstanceOf[AesWishbone])),
         "aes128wishbone_test" -> (() => new AesWishbone(LIMIT_KEY_LENGTH=false),
             (dut: LegacyModule) => new Aes128WishboneTest(dut.asInstanceOf[AesWishbone])),
-        "aes56wishbone_test" -> (() => new Aes56Wishbone(),
-            (dut: LegacyModule) => new Aes56WishboneTest(dut.asInstanceOf[Aes56Wishbone])),
 
         "optimizedsbox_test" -> (() => new OptimizedSboxTestHarness(),
             (dut: LegacyModule) => new OptimizedSboxTest(dut.asInstanceOf[OptimizedSboxTestHarness])),

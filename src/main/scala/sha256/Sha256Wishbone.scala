@@ -101,8 +101,6 @@ class Sha256Wishbone(val IDENT: String = "SHA256 Core") extends Module {
                         ack := false.B
                     }
                 }
-
-                // Rest are read-only
             }
         }
 
